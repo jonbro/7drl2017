@@ -22,6 +22,30 @@ x laser recharge
 BUGS:
 - player can move on top of enemy (should do a melee attack?)
 */
+
+
+// original map gen stuff
+// this all sucks!
+// should replace with sensible map layout something
+// for (var i=0;i<Game.mapSize;i++) {
+//     var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
+//     var key = freeCells.splice(index, 1)[0];
+//     this._setMapToTileType(key, 'wall');
+//     this._generateColorOffsetsForCell(this.map[key]);
+// }
+// for (var i=0;i<Game.mapSize;i++) {
+//     var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
+//     var key = freeCells.splice(index, 1)[0];
+//     this._setMapToTileType(key, 'window');
+//     this._generateColorOffsetsForCell(this.map[key]);
+// }
+// for (var i=0;i<120;i++) {
+//     var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
+//     var key = freeCells.splice(index, 1)[0];
+//     this._setMapToTileType(key, 'plant');
+//     this._generateColorOffsetsForCell(this.map[key]);
+// }
+
 var tileSet;
 var Game = {
     scheduler: null,
@@ -81,26 +105,14 @@ var Game = {
                 freeCells.push(this.getKey(x,y));
             }
         }
-        // this all sucks!
-        // should replace with sensible map layout something
-        // for (var i=0;i<Game.mapSize;i++) {
-        //     var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
-        //     var key = freeCells.splice(index, 1)[0];
-        //     this._setMapToTileType(key, 'wall');
-        //     this._generateColorOffsetsForCell(this.map[key]);
-        // }
-        // for (var i=0;i<Game.mapSize;i++) {
-        //     var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
-        //     var key = freeCells.splice(index, 1)[0];
-        //     this._setMapToTileType(key, 'window');
-        //     this._generateColorOffsetsForCell(this.map[key]);
-        // }
-        for (var i=0;i<120;i++) {
-            var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
-            var key = freeCells.splice(index, 1)[0];
-            this._setMapToTileType(key, 'plant');
-            this._generateColorOffsetsForCell(this.map[key]);
+
+        // add decoration
+        for (var x = 1; x < this.mapSize; x+=3) {
+            for (var y = 2; y < this.mapSize; y+=3) {
+                this._addRectToMap(x,y,2,1,true,'plant');
+            }
         }
+
         // add entrance tile
         var entranceY = Math.floor(ROT.RNG.getUniform() * this.mapSize);
         this._setMapToTileType(this.getKey(0,entranceY), 'entrance');
@@ -127,6 +139,15 @@ var Game = {
         this.drawable.push(this.player);
         this.scheduler.add(this.player, true);
         this.drawable.push(new Hud());
+    },
+    _addRectToMap: function(_x,_y,w,h,filled,tileKey)
+    {
+        for (var x = _x; x < _x+w; x++) {
+            for (var y = _y; y < _y+h; y++) {
+                this._setMapToTileType(this.getKey(x,y), tileKey);
+                this._generateColorOffsetsForCell(this.map[this.getKey(x,y)]);
+            }
+        }
     },
     _setMapToTileType: function(positionKey, tileKey)
     {
