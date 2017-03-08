@@ -50,7 +50,9 @@ var Game = {
 
                 "#": [128, 0],
                 "|": [7*32, 0],
+                "-": [7*32, 32],
                 "p": [96, 0],
+                "⌠": [96, 32],
                 "<": [6*32, 0],
                 ">": [6*32, 0]
             },
@@ -81,19 +83,19 @@ var Game = {
         }
         // this all sucks!
         // should replace with sensible map layout something
-        for (var i=0;i<Game.mapSize;i++) {
-            var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
-            var key = freeCells.splice(index, 1)[0];
-            this._setMapToTileType(key, 'wall');
-            this._generateColorOffsetsForCell(this.map[key]);
-        }
-        for (var i=0;i<Game.mapSize;i++) {
-            var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
-            var key = freeCells.splice(index, 1)[0];
-            this._setMapToTileType(key, 'window');
-            this._generateColorOffsetsForCell(this.map[key]);
-        }
-        for (var i=0;i<Game.mapSize;i++) {
+        // for (var i=0;i<Game.mapSize;i++) {
+        //     var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
+        //     var key = freeCells.splice(index, 1)[0];
+        //     this._setMapToTileType(key, 'wall');
+        //     this._generateColorOffsetsForCell(this.map[key]);
+        // }
+        // for (var i=0;i<Game.mapSize;i++) {
+        //     var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
+        //     var key = freeCells.splice(index, 1)[0];
+        //     this._setMapToTileType(key, 'window');
+        //     this._generateColorOffsetsForCell(this.map[key]);
+        // }
+        for (var i=0;i<120;i++) {
             var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
             var key = freeCells.splice(index, 1)[0];
             this._setMapToTileType(key, 'plant');
