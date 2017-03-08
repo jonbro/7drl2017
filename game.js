@@ -1,5 +1,9 @@
 /*
 TODO:
+x shooting enemy
+x enemy attacks
+- enemy movement?
+- enemy shooter attack
 - visibility
 - lunge spells
 - destructible terrain
@@ -9,16 +13,13 @@ TODO:
 - office placement (place rect within room)
 - boundary walls
 - room entrance / exit
-- shooting enemy
-- enemy attacks
-- enemy types (melee, shooter)
 - two gun types (laser / kinetic)
 - windows smashable with kinetic / lunge spell
 - soundtrack
 - sound effects
 */
 var ENVDEFS = {
-    floor: {key: 'floor', char: '.', fgColor: '#141301', bgColor: '#091921', passable: true},
+    floor: {key: 'floor', char: '░', fgColor: '#141301', bgColor: '#091921', passable: true},
     wall: {key: 'wall', char: '■', fgColor: '#6A8D73', bgColor: '#47544D'},
     window: {key: 'window', char: '║', fgColor: '#E2FFF2', bgColor: '#7ADDDA'},
     plant: {key: 'plant', char:'§', fgColor: '#79CC5F', bgColor: '#091921'}
@@ -49,11 +50,13 @@ var Game = {
         var noise = new ROT.Noise.Simplex();
         for (var x = 0; x < this.mapSize; x++) {
             for (var y = 0; y < this.mapSize; y++) {
-                var cell = this.map[this.getKey(x,y)] = {key: 'floor', colorOffset: noise.get(x/5, y/5)*0.2};
+                var cell = this.map[this.getKey(x,y)] = {key: 'floor', colorOffset: noise.get(x/5, y/5)*0.4};
                 this._generateColorOffsetsForCell(cell);
                 freeCells.push(this.getKey(x,y));
             }
         }
+        // this all sucks!
+        // should replace with sensible map layout something
         for (var i=0;i<Game.mapSize;i++) {
             var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
             var key = freeCells.splice(index, 1)[0];
@@ -72,17 +75,20 @@ var Game = {
             var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
             var key = freeCells.splice(index, 1)[0];
             var xy = this._keyToXY(key);
-            this.map[key] = {key:'plant', colorOffset: noise.get(xy[0]/5,xy[1]/5)*0.1};
+            this.map[key] = {key:'plant', colorOffset: noise.get(xy[0]/5,xy[1]/5)*0.3};
             this._generateColorOffsetsForCell(this.map[key]);
         }
 
         this.player = new Player(0,0);
         this.drawable.push(this.player);
         this.scheduler.add(this.player, true);
+
         this.enemy = new Enemy(5,5);
         this.drawable.push(this.enemy);
         this.entities.push(this.enemy);
         this.scheduler.add(this.enemy, true);
+
+        this.drawable.push(new Hud());
     },
     _keyToXY: function(key)
     {
@@ -147,6 +153,14 @@ var Game = {
     {
         var rgb = ROT.Color.hsl2rgb(hsl);
         return 'rgb('+rgb[0]+','+rgb[1]+','+rgb[2]+')';
+    },
+    gameOver: function()
+    {
+        this.drawable = [];
+        this.entities = [];
+        this.map = {};
+        this.scheduler.clear();
+        this._generateMap();
     }
 }
 var redraw = function(timestamp)
@@ -225,16 +239,80 @@ Enemy.prototype.draw = function()
 }
 Enemy.prototype.act = function()
 {
+    this.movement();
     // check if player is along shot path
+    this.melee();
+}
+Enemy.prototype.movement = function()
+{
+    /* prepare path to given coords */
+    var enemy = this;
+    var astar = new ROT.Path.AStar(Game.player.getX(), Game.player.getY(), function(x,y){
+        var pathKey = Game.getKey(x,y);
+        var isSelf = Game.getEntitiesAtPosition(x,y).length == 1 && Game.getEntitiesAtPosition(x,y)[0] === enemy;
+        return pathKey in Game.map
+            && Game.map[pathKey].envDef.passable
+            && (Game.getEntitiesAtPosition(x,y).length == 0 || isSelf)
+    }, {topology: 4});
 
+    /* compute from given coords #1 */
+    var moved = false;
+    astar.compute(this.getX(), this.getY(), function(x,y){
+        if(moved)
+            return;
+        var pathOnSelf = enemy.getX() == x && enemy.getY() == y;
+        var pathOnPlayer = x==Game.player.getX() && y ==Game.player.getY();
+        if(!pathOnSelf && !pathOnPlayer){
+            moved = true;
+            enemy.setX(x); enemy.setY(y);
+        }
+    });
+    return moved;
+}
+Enemy.prototype.melee = function()
+{
+    // check to see if the player is next to an enemy, and end the game if so
+    for (var i = 0; i < ROT.DIRS[4].length; i++) {
+        var neighbor = [ROT.DIRS[4][i][0]+this.getX(), ROT.DIRS[4][i][1]+this.getY()];
+        if((Game.getKey(neighbor[0],neighbor[1]) in Game.map)
+            && Game.player.getX() == neighbor[0]
+            && Game.player.getY() == neighbor[1])
+        {
+            Game.player.hit();
+        }
+    }
 }
 Enemy.prototype.onShot = function()
 {
     Game.removeEntity(this);
 }
+var Hud = function()
+{
+
+}
+Hud.prototype.draw = function()
+{
+
+    var leftSide = Game.mapSize+1;
+    // clear screen
+    for(var x=leftSide;x<Game.display.getOptions().width;x++)
+    {
+        for(var y=0;y<Game.display.getOptions().height;y++)
+        {
+            Game.display.draw(x, y, ' ', '#000', '#000');
+        }
+    }
+    var currentLine = 0;
+    var hpStr = 'HP:%c{red}';
+    for (var i = 0; i < Game.player.hp; i++) {
+        hpStr += '♥';
+    }
+    Game.display.drawText(leftSide, currentLine++,hpStr);
+}  
 var Player = function(x,y)
 {
     this.setPosition(x,y);
+    this.hp = 3;
 }
 Player.prototype = Object.create(Entity.prototype);
 Player.prototype.constructor = Player;
@@ -244,6 +322,12 @@ Player.prototype.act = function()
     window.addEventListener("keydown", this);
     // window.addEventListener("mousemove", this);
     // window.addEventListener("mousedown", this);
+}
+Player.prototype.hit = function()
+{
+    this.hp--;
+    if(this.hp<=0)
+        Game.gameOver();
 }
 Player.prototype.draw = function()
 {
@@ -259,10 +343,6 @@ Player.prototype.handleEvent = function(e)
     {
         case 'keydown':
             return this.handleKeyEvent(e);
-        // case 'mousemove':
-        //     return this.handleMouseMoveEvent(e);
-        // case 'mousedown':
-        //     return this.handleMouseDownEvent(e);
     }
 }
 function line(x0, y0, x1, y1){
@@ -303,7 +383,6 @@ Player.prototype.handleKeyEvent = function(e)
             if(Game.getEntitiesAtPosition(x, y).length > 0){
                 return Game.getEntitiesAtPosition(x, y);
             }
-            console.log(x,y,Game.map[Game.getKey(x,y)].envDef.passable);
             return Game.map[Game.getKey(x,y)].envDef.passable;
         });
         if(orthagonalShotHits.length > 0){
@@ -318,4 +397,6 @@ Player.prototype.handleKeyEvent = function(e)
             this.setPosition(this.getX()+dir[0], this.getY()+dir[1]);
         }
     }
+    window.removeEventListener("keydown", this);
+    Game.engine.unlock();
 }
