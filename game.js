@@ -4,9 +4,9 @@ x shooting enemy
 x enemy attacks
 x enemy movement?
 x room entrance / exit
+x laser recharge
 - two gun types (laser / kinetic)
 - kinetic reload
-- laser recharge
 - windows smashable with kinetic / lunge spell
 - lunge spells
 - enemy shooter attack
@@ -19,8 +19,10 @@ x room entrance / exit
 - boundary walls
 - soundtrack
 - sound effects
+BUGS:
+- player can move on top of enemy (should do a melee attack?)
 */
-
+var tileSet;
 var Game = {
     scheduler: null,
     display: null,
@@ -32,12 +34,38 @@ var Game = {
         this.scheduler = new ROT.Scheduler.Simple();
         this.engine = new ROT.Engine(this.scheduler);
         this.display = new ROT.Display({
+            layout: "tile",
+            tileWidth: 32,
+            tileHeight: 32,
+            tileSet: tileSet,
+            tileColorize:true,
+            tileMap: {
+                "@": [0, 0],
+                "e": [32, 0],
+                
+                ".": [64, 0],
+                ",": [64, 32],
+                "f": [64, 64],
+                "_": [64, 96],
+
+                "#": [128, 0],
+                "|": [7*32, 0],
+                "p": [96, 0],
+                "<": [6*32, 0],
+                ">": [6*32, 0]
+            },
             forceSquareRatio: true,
             width: 30,
             height: this.mapSize,
             fontSize: 20
         });
-        document.body.appendChild(this.display.getContainer());
+        this.huddisplay = new ROT.Display({
+            fontSize:16,
+            fontFamily:'Helvetica',
+            width: 30
+        })
+        document.getElementById('mainDisplay').appendChild(this.display.getContainer());
+        document.getElementById('hudDisplay').appendChild(this.huddisplay.getContainer());
         this._generateMap();
         this.engine.start();
         window.requestAnimationFrame(redraw);
@@ -79,7 +107,7 @@ var Game = {
         var exitY = Math.floor(ROT.RNG.getUniform() * this.mapSize);
         this._setMapToTileType(this.getKey(this.mapSize-1,exitY), 'exit');
         var enemies = [];
-        for (var i = 0; i < 4; i++) {
+        for (var i = 0; i < 6; i++) {
             var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
             var key = freeCells.splice(index, 1)[0];
             let xy = this._keyToXY(key);
@@ -104,6 +132,11 @@ var Game = {
         var xy = this._keyToXY(positionKey);
         this.map[positionKey] = {key:tileKey, colorOffset: noise.get(xy[0]/5,xy[1]/5)*0.3};
         this.map[positionKey].envDef = ENVDEFS[tileKey];
+        this.map[positionKey].char = ENVDEFS[tileKey].char;
+        if(this.map[positionKey].char.constructor === Array)
+        {
+            this.map[positionKey].char = this.map[positionKey].char[Math.floor(ROT.RNG.getUniform() * this.map[positionKey].char.length)]
+        }
     },
     _keyToXY: function(key)
     {
@@ -158,7 +191,7 @@ var Game = {
             for (var y = 0; y < this.mapSize; y++) {
                 var cell = this.map[this.getKey(x,y)];
                 var envDef = ENVDEFS[cell.key];
-                this.display.draw(x,y,envDef.char,cell.fgColor||envDef.fgColor,cell.bgColor||envDef.bgColor);
+                this.display.draw(x,y,cell.char,cell.fgColor||envDef.fgColor,cell.bgColor||envDef.bgColor);
             }
         }
         for (var i = 0; i < this.drawable.length; i++) {
@@ -189,3 +222,11 @@ var redraw = function(timestamp)
     Game.draw();
     window.requestAnimationFrame(redraw)
 }
+document.addEventListener('DOMContentLoaded', function() {
+    tileSet = document.createElement("img");
+    tileSet.src = "tilemap.png";
+    tileSet.onload = function() {
+        Game.init();
+    }
+}, false);
+

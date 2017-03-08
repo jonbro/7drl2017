@@ -66,7 +66,8 @@ Enemy.prototype = Object.create(Entity.prototype);
 Enemy.prototype.constructor = Enemy;
 Enemy.prototype.draw = function()
 {
-    Game.display.draw(this.getX(),this.getY(), "e", '#f00', '#000');
+    cell = Game.map[Game.getKey(this.getX(), this.getY())];
+    Game.display.draw(this.getX(),this.getY(), "e", '#f00', cell.bgColor);
 }
 Enemy.prototype.act = function()
 {
@@ -128,13 +129,13 @@ var Hud = function()
 }
 Hud.prototype.draw = function()
 {
-    var leftSide = Game.mapSize+1;
+    var leftSide = 0;
     // clear screen
-    for(var x=leftSide;x<Game.display.getOptions().width;x++)
+    for(var x=0;x<Game.huddisplay.getOptions().width;x++)
     {
-        for(var y=0;y<Game.display.getOptions().height;y++)
+        for(var y=0;y<Game.huddisplay.getOptions().height;y++)
         {
-            Game.display.draw(x, y, ' ', '#000', '#000');
+            Game.huddisplay.draw(x, y, ' ', '#000', '#000');
         }
     }
     var currentLine = 0;
@@ -142,12 +143,20 @@ Hud.prototype.draw = function()
     for (var i = 0; i < Game.player.hp; i++) {
         hpStr += '♥';
     }
-    Game.display.drawText(leftSide, currentLine++,hpStr);
+    Game.huddisplay.drawText(leftSide, currentLine++,hpStr);
+    if(Game.player.isLaserChargeReady())
+    {
+        Game.huddisplay.drawText(leftSide, currentLine++,'BEAM: OK');
+    }else{
+        Game.huddisplay.drawText(leftSide, currentLine++,'BEAM IN: '+Game.player.turnsUntilLaserReady());
+    }
 }  
 var Player = function(x,y)
 {
     this.setPosition(x,y);
     this.hp = 3;
+    this.laserFullCharge = 3;
+    this.laserCharge = this.laserFullCharge;
 }
 Player.prototype = Object.create(Entity.prototype);
 Player.prototype.constructor = Player;
@@ -188,7 +197,6 @@ function line(x0, y0, x1, y1){
    var sx = (x0 < x1) ? 1 : -1;
    var sy = (y0 < y1) ? 1 : -1;
    var err = dx-dy;
-
    while(true){
      Game.display.draw(x0,y0, '.');  // Do what you need to for this
 
@@ -197,6 +205,33 @@ function line(x0, y0, x1, y1){
      if (e2 >-dy){ err -= dy; x0  += sx; }
      if (e2 < dx){ err += dx; y0  += sy; }
    }
+}
+Player.prototype.turnsUntilLaserReady = function()
+{
+    return this.laserFullCharge-this.laserCharge;
+}
+Player.prototype.isLaserChargeReady = function()
+{
+    return this.laserCharge >= this.laserFullCharge;
+}
+Player.prototype.attemptLaserShot = function(dir)
+{
+    if(this.isLaserChargeReady())
+    {
+        var orthagonalShotHits = this.checkAlongPath(dir[0], dir[1], function(x,y){
+            if(Game.getEntitiesAtPosition(x, y).length > 0){
+                return Game.getEntitiesAtPosition(x, y);
+            }
+            return Game.map[Game.getKey(x,y)].envDef.passable;
+        });
+        if(orthagonalShotHits.length > 0){
+            orthagonalShotHits[0].onShot();
+            this.laserCharge = 0;
+            this.endTurn();
+            return true;
+        }
+    }
+    return false;
 }
 Player.prototype.handleKeyEvent = function(e)
 {
@@ -216,21 +251,13 @@ Player.prototype.handleKeyEvent = function(e)
         var dir = ROT.DIRS[4][keyMap[code]];
         var newX = this.getX()+dir[0];
         var newY = this.getY()+dir[1];
-        var orthagonalShotHits = this.checkAlongPath(dir[0], dir[1], function(x,y){
-            if(Game.getEntitiesAtPosition(x, y).length > 0){
-                return Game.getEntitiesAtPosition(x, y);
-            }
-            return Game.map[Game.getKey(x,y)].envDef.passable;
-        });
-        if(orthagonalShotHits.length > 0){
-            orthagonalShotHits[0].onShot();
-            return this.endTurn();
-        }
-        
         // check to make sure it is a legal move
         var newPositionKey = Game.getKey(newX, newY);
+        if(this.attemptLaserShot(dir))
+            return;
         if(newPositionKey in Game.map)
         {
+            this.laserCharge++;
             if(Game.map[newPositionKey].key == 'exit')
             {
                 Game.nextLevel();
