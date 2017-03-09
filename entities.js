@@ -67,7 +67,7 @@ Enemy.prototype.constructor = Enemy;
 Enemy.prototype.draw = function()
 {
     cell = Game.map[Game.getKey(this.getX(), this.getY())];
-    Game.display.draw(this.getX(),this.getY(), "e", '#f00', cell.bgColor);
+    Game.display.draw(this.getX(),this.getY(), "e", '#f33', cell.bgColor);
 }
 Enemy.prototype.act = function()
 {
