@@ -48,6 +48,9 @@ ROT.Map.BSP.prototype.create = function(callback)
     {
         var currentLeaf = leafNodes.pop();
         currentLeaf._rect.shrinkRandom();
+        var room = new ROT.Map.Feature.Room(currentLeaf._rect._x, currentLeaf._rect._y, currentLeaf._rect._x+currentLeaf._rect._w, currentLeaf._rect._y+currentLeaf._rect._h);
+        this._rooms.push(room);
+
         for (var x = currentLeaf._rect._x; x < currentLeaf._rect._x+currentLeaf._rect._w; x++) {
             for (var y = currentLeaf._rect._y; y < currentLeaf._rect._y+currentLeaf._rect._h; y++) {
                 this._map[x][y] = 0;

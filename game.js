@@ -7,11 +7,12 @@ x room entrance / exit
 x laser recharge
 x lunge spells
 x room subdivision
+- generate windows between rooms that share wall
+- windows smashable with kinetic / lunge spell
 - room types
 - room decoration
 - two gun types (laser / kinetic)
 - kinetic reload
-- windows smashable with kinetic / lunge spell
 - enemy shooter attack
 - visibility
 - destructible terrain
@@ -23,34 +24,11 @@ BUGS:
 - player can move on top of enemy (should do a melee attack?)
 - should be able to roll into the level exit
 
-CURRENT LOC: 694
+CURRENT LOC: 768
 `cloc . --not-match-f=rot.js`
 
 _the ship is infested and the crew is dead. reactivate the power core and get to the shuttle_
 */
-
-
-// original map gen stuff
-// this all sucks!
-// should replace with sensible map layout something
-// for (var i=0;i<Game.mapSize;i++) {
-//     var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
-//     var key = freeCells.splice(index, 1)[0];
-//     this._setMapToTileType(key, 'wall');
-//     this._generateColorOffsetsForCell(this.map[key]);
-// }
-// for (var i=0;i<Game.mapSize;i++) {
-//     var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
-//     var key = freeCells.splice(index, 1)[0];
-//     this._setMapToTileType(key, 'window');
-//     this._generateColorOffsetsForCell(this.map[key]);
-// }
-// for (var i=0;i<120;i++) {
-//     var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
-//     var key = freeCells.splice(index, 1)[0];
-//     this._setMapToTileType(key, 'plant');
-//     this._generateColorOffsetsForCell(this.map[key]);
-// }
 
 var tileSet;
 var Game = {
@@ -118,14 +96,17 @@ var Game = {
     _generateMap: function() {
         var freeCells = [];
         var game = this;
-        var mapGen = new ROT.Map.BSP(this.mapSize, this.mapSize,{
+        var mapGen = new ROT.Map.BSP(this.mapSize-2, this.mapSize-2,{
             roomWidth: [8, 10], /* room minimum and maximum width */
             roomHeight: [8, 10], /* room minimum and maximum height */
             corridorLength: [3, 7], /* corridor minimum and maximum length */
             roomDugPercentage: 0.82, /* we stop after this percentage of level area has been dug out */
             timeLimit: 1000 /* we stop after this much time has passed (msec) */
         });
+        this._addRectToMap(0,0,this.mapSize, this.mapSize, false, 'wall');
         mapGen.create(function(x,y,value){
+            x+=1;
+            y+=1;
             if(value == 0){
                 game._setMapToTileType(game.getKey(x,y), 'floor');
                 game._generateColorOffsetsForCell(game.map[game.getKey(x,y)]);
@@ -135,15 +116,27 @@ var Game = {
                 game._generateColorOffsetsForCell(game.map[game.getKey(x,y)]);
             }
         });
-        this._generateHydroponics();
-
+        // this._generateHydroponics();
+        var rooms = mapGen.getRooms();
+        var leftRoom = null;
+        var rightRoom = null;
+        for (var i = 0; i < rooms.length; i++) {
+            if(leftRoom == null || leftRoom.getLeft() > rooms[i].getLeft())
+                leftRoom = rooms[i];
+            if(rightRoom == null || rightRoom.getRight() < rooms[i].getRight())
+                rightRoom = rooms[i];
+        }
         // add entrance tile
-        var entranceY = Math.floor(ROT.RNG.getUniform() * this.mapSize);
-        this._setMapToTileType(this.getKey(0,entranceY), 'entrance');
+        var entranceY = ROT.RNG.getUniformInt(leftRoom.getTop()+1, leftRoom.getBottom()-1);
+        var entranceX = leftRoom.getLeft();
+        this._setMapToTileType(this.getKey(entranceX,entranceY), 'entrance');
+
+        var exitY = ROT.RNG.getUniformInt(rightRoom.getTop()+1, rightRoom.getBottom()-1);
+        var exitX = rightRoom.getRight()+1;
+        this._setMapToTileType(this.getKey(exitX,exitY), 'exit');
+
 
         // add exit tile
-        var exitY = Math.floor(ROT.RNG.getUniform() * this.mapSize);
-        this._setMapToTileType(this.getKey(this.mapSize-1,exitY), 'exit');
         var enemies = [];
         for (var i = 0; i < 6; i++) {
             var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
@@ -156,9 +149,9 @@ var Game = {
         }
 
         if(this.player == null){
-            this.player = new Player(0,entranceY);
+            this.player = new Player(entranceX,entranceY);
         }else{
-            this.player.setPosition(0,entranceY);
+            this.player.setPosition(entranceX,entranceY);
         }
         this.drawable.push(this.player);
         this.scheduler.add(this.player, true);
