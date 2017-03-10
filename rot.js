@@ -578,6 +578,15 @@ Number.prototype.mod = Number.prototype.mod || function(n) {
 	return ((this%n)+n)%n;
 }
 /**
+ * Clamp function
+ * @param {int} n Low Value
+ * @param {int} n High Value
+ * @returns {int} Low <= number <= High
+ */
+Number.prototype.clamp = Number.prototype.clamp || function(l,h) {
+	return Math.min(h, Math.max(l, this));
+}
+/**
  * @returns {string} First letter capitalized
  */
 String.prototype.capitalize = String.prototype.capitalize || function() {
