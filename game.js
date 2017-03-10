@@ -1,14 +1,8 @@
 /*
 TODO:
-x shooting enemy
-x enemy attacks
-x enemy movement?
-x room entrance / exit
-x laser recharge
-x lunge spells
-x room subdivision
-- generate windows between rooms that share wall
-- windows smashable with kinetic / lunge spell
+x generate windows between rooms that share wall
+x windows smashable with lunge spell
+- confirm that path from entrance to exit is walkable
 - room types
 - room decoration
 - two gun types (laser / kinetic)
@@ -16,15 +10,15 @@ x room subdivision
 - enemy shooter attack
 - visibility
 - destructible terrain
-- office placement (place rect within room)
-- boundary walls
 - soundtrack
 - sound effects
+
 BUGS:
 - player can move on top of enemy (should do a melee attack?)
 - should be able to roll into the level exit
-
-CURRENT LOC: 768
+- enemies shouldn't block other enemies pathing to player 
+- check on either side of window for floor before generating window
+CURRENT LOC: 849
 `cloc . --not-match-f=rot.js`
 
 _the ship is infested and the crew is dead. reactivate the power core and get to the shuttle_
@@ -126,6 +120,7 @@ var Game = {
             if(rightRoom == null || rightRoom.getRight() < rooms[i].getRight())
                 rightRoom = rooms[i];
         }
+        this._placeWindowsOnSharedWalls(rooms);
         // add entrance tile
         var entranceY = ROT.RNG.getUniformInt(leftRoom.getTop()+1, leftRoom.getBottom()-1);
         var entranceX = leftRoom.getLeft();
@@ -156,6 +151,64 @@ var Game = {
         this.drawable.push(this.player);
         this.scheduler.add(this.player, true);
         this.drawable.push(new Hud());
+    },
+    _placeWindowsOnSharedWalls: function(rooms)
+    {
+        for (var i = 0; i < rooms.length; i++) {
+            for (var j = 0; j < rooms.length; j++) {
+                if(i!=j)
+                {
+                    var topRoom = i;
+                    var bottomRoom = j;
+                    var leftRoom = i;
+                    var rightRoom = j;
+
+                    if(rooms[i].getTop() > rooms[j].getTop())
+                    {
+                        topRoom = j;
+                        bottomRoom = i;
+                    }
+                    if(rooms[i].getLeft() > rooms[j].getRight())
+                    {
+                        leftRoom = j;
+                        rightRoom = i;
+                    }
+                    
+                    if(rooms[topRoom].getBottom()+1 == rooms[bottomRoom].getTop())
+                    {
+                        var leftSide = Math.max(rooms[topRoom].getLeft(), rooms[bottomRoom].getLeft());
+                        var rightSide = Math.min(rooms[topRoom].getRight(), rooms[bottomRoom].getRight());
+                        for(var x = leftSide-1; x < rightSide+1; x++)
+                        {
+                            var key = this.getKey(x+1,rooms[topRoom].getBottom()+1);
+                            if(this.map[key].key == 'wall'){
+                                this._setMapToTileType(key, 'floor');
+                                var e = new Window(x+1,rooms[topRoom].getBottom()+1);
+                                this.drawable.push(e);
+                                this.entities.push(e);
+
+                            }
+                        }
+                    }
+                    if(rooms[leftRoom].getRight()+1 == rooms[rightRoom].getLeft())
+                    {
+                        var topSide = Math.max(rooms[leftRoom].getTop(), rooms[rightRoom].getTop());
+                        var bottomSide = Math.min(rooms[leftRoom].getBottom(), rooms[rightRoom].getBottom());
+                        for(var y = topSide; y < bottomSide; y++)
+                        {
+                            var key = this.getKey(rooms[leftRoom].getRight()+1, y+1);
+                            if(this.map[key].key == 'wall'){
+                                this._setMapToTileType(key, 'floor');
+                                var e = new Window(rooms[leftRoom].getRight()+1, y+1);
+                                this.drawable.push(e);
+                                this.entities.push(e);
+                            }
+                        }
+                    }
+
+                }
+            }
+        }
     },
     _addRectToMap: function(_x,_y,w,h,filled,tileKey)
     {

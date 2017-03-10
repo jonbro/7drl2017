@@ -56,6 +56,27 @@ Entity.prototype.setPosition = function(x,y)
     this._x = x;
     this._y = y;
 }
+var Window = function(x,y)
+{
+    this.setPosition(x,y);
+    this.breakable = true;
+    this.char = ['|','-'];
+    this.char = this.char[ROT.RNG.getUniformInt(0, this.char.length-1)];
+    this.draw();
+    this.fgColor= '#E2F3F1';
+    this.bgColor= '#7AADAA'
+}
+Window.prototype = Object.create(Entity.prototype);
+Window.prototype.constructor = Window;
+Window.prototype.draw = function()
+{
+    cell = Game.map[Game.getKey(this.getX(), this.getY())];
+    Game.display.draw(this.getX(),this.getY(), this.char, this.fgColor, this.bgColor);
+}
+Window.prototype.break = function()
+{
+    Game.removeEntity(this);
+}
 var Enemy = function(x,y)
 {
     this.setPosition(x,y);
@@ -71,7 +92,6 @@ Enemy.prototype.draw = function()
 }
 Enemy.prototype.act = function()
 {
-    console.log('enemy act');
     // check if player is along shot path
     if(!this.melee())
     {

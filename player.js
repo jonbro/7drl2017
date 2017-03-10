@@ -29,9 +29,9 @@ Hud.prototype.draw = function()
     if(Game.player.roll.isChargeReady())
     {
         let rollColor = Game.player.rolling?"%c{#f00}":"%c{#fff}";
-        Game.huddisplay.drawText(leftSide, currentLine++,rollColor+'1: ROLL OK');
+        Game.huddisplay.drawText(leftSide, currentLine++,rollColor+'1: LUNGE OK');
     }else{
-        Game.huddisplay.drawText(leftSide, currentLine++,'1: ROLL IN: '+Game.player.roll.turnsUntilReady());
+        Game.huddisplay.drawText(leftSide, currentLine++,'1: LUNGE IN: '+Game.player.roll.turnsUntilReady());
     }
 }
 var ChargableItem = function(fullCharge)
@@ -117,7 +117,8 @@ Player.prototype.attemptLaserShot = function(dir)
     if(this.laser.isChargeReady())
     {
         var orthagonalShotHits = this.checkAlongPath(dir[0], dir[1], function(x,y){
-            if(Game.getEntitiesAtPosition(x, y).length > 0){
+            if(Game.getEntitiesAtPosition(x, y).length > 0
+                && Game.getEntitiesAtPosition(x, y)[0].shootable){
                 return Game.getEntitiesAtPosition(x, y);
             }
             return Game.map[Game.getKey(x,y)].envDef.passable;
@@ -141,17 +142,18 @@ Player.prototype.handleMovement = function(dir)
         // find the new position within 4 distance
         let maxRollDistance = 4;
         let rollCells = this.checkAlongPath(dir[0], dir[1], function(x,y){
-            console.log()
+            entitiesAtPosition = Game.getEntitiesAtPosition(x, y);
             let rollOk = Game.map[Game.getKey(x,y)].envDef.passable
-                && Game.getEntitiesAtPosition(x, y).length == 0
+                && (entitiesAtPosition.length == 0 || entitiesAtPosition[0].breakable)
                 && --maxRollDistance>0;
             if(rollOk)
             {
+                if(entitiesAtPosition.length > 0)
+                    entitiesAtPosition[0].break();
                 return [[x,y]];
             }
             return false;
         });
-        console.log(rollCells);
         if(rollCells.length > 0)
         {
             let newPosition = rollCells[rollCells.length-1];
@@ -168,14 +170,16 @@ Player.prototype.handleMovement = function(dir)
     }
     if(newPositionKey in Game.map)
     {
-        this.laser.charge();
-        this.roll.charge();
         if(Game.map[newPositionKey].key == 'exit')
         {
+            this.laser.charge();
+            this.roll.charge();
             Game.nextLevel();
             this.endTurn();
         }
         else if(Game.map[newPositionKey].envDef.passable){
+            this.laser.charge();
+            this.roll.charge();
             this.setPosition(this.getX()+dir[0], this.getY()+dir[1]);
             this.endTurn();
         }

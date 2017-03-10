@@ -100,11 +100,13 @@ ROT.Map.BSP.prototype._digLine = function(x1, y1, x2, y2)
     if(x1 == x2)
     {
         for (var j=y1;j<y2;j++) {
-            this._map[x1][j] = 0;
+            if(x1 >= 0 && x1 < this._width && j >= 0 && j < this._height)
+                this._map[x1][j] = 0;
         }
     }else{
         for (var i=x1;i<x2;i++) {
-            this._map[i][y1] = 0;
+            if(i >= 0 && i < this._width && y1 >= 0 && y1 < this._height)
+                this._map[i][y1] = 0;
         }
     }
 }
