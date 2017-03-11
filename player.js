@@ -4,6 +4,7 @@ var Hud = function()
 }
 Hud.prototype.draw = function()
 {
+
     var leftSide = 0;
     // clear screen
     for(var x=0;x<Game.huddisplay.getOptions().width;x++)
@@ -13,7 +14,13 @@ Hud.prototype.draw = function()
             Game.huddisplay.draw(x, y, ' ', '#000', '#000');
         }
     }
+    if(Game.gameHasBeenWon)
+        return this.drawGameWin();
+    else if(Game.gameHasBeenLost)
+        return this.drawGameLoss();
     var currentLine = 0;
+    Game.huddisplay.drawText(leftSide, currentLine++,'LEVEL: '+Game.currentLevel);
+    currentLine++;
     var hpStr = 'HP:%c{red}';
     for (var i = 0; i < Game.player.hp; i++) {
         hpStr += '♥';
@@ -33,6 +40,20 @@ Hud.prototype.draw = function()
     }else{
         Game.huddisplay.drawText(leftSide, currentLine++,'1: LUNGE IN: '+Game.player.roll.turnsUntilReady());
     }
+}
+Hud.prototype.drawGameLoss = function()
+{
+    var leftSide = 0;
+    var currentLine = 0;
+    Game.huddisplay.drawText(leftSide, currentLine++,'YOU HAVE LOST');
+    Game.huddisplay.drawText(leftSide, currentLine++,'PRESS SPACE TO RESTART');
+}
+Hud.prototype.drawGameWin = function()
+{
+    var leftSide = 0;
+    var currentLine = 0;
+    Game.huddisplay.drawText(leftSide, currentLine++,'YOU HAVE WON');
+    Game.huddisplay.drawText(leftSide, currentLine++,'PRESS SPACE TO RESTART');
 }
 var ChargableItem = function(fullCharge)
 {

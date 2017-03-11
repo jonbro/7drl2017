@@ -64,6 +64,26 @@ Entity.prototype.draw = function()
         bgColor = this.bgColor;
     Game.display.draw(this.getX(),this.getY(), this.char, this.fgColor, bgColor);
 }
+var RestartListener = function(x,y)
+{
+    this.setPosition(x,y);
+}
+RestartListener.extend(Entity);
+RestartListener.prototype.act = function()
+{
+    Game.engine.lock();
+    window.addEventListener("keydown", this);
+}
+RestartListener.prototype.handleEvent = function(e)
+{
+    if(e.keyCode == 32)
+    {
+        Game.restart();
+        Game.engine.unlock();
+    }
+}
+
+
 var Window = function(x,y)
 {
     this.setPosition(x,y);

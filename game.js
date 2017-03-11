@@ -2,7 +2,8 @@
 TODO:
 x generate windows between rooms that share wall
 x windows smashable with lunge spell
-- add enemy type spitter (attempts to get within 3, then spits out an acid cell that causes damage when you step on it)
+x add enemy type shooter (attempts to get within 3, then prepares, then shoots at player)
+x game win and game loss screens
 - spawner boxes
 - confirm that path from entrance to exit is walkable
 - room types
@@ -17,10 +18,11 @@ x windows smashable with lunge spell
 
 BUGS:
 - player can move on top of enemy (should do a melee attack?)
+- player can walk through windows
 - should be able to roll into the level exit
 - enemies shouldn't block other enemies pathing to player 
 - check on either side of window for floor before generating window
-CURRENT LOC: 902
+CURRENT LOC: 961
 `cloc . --not-match-f=rot.js`
 
 _the ship is infested and the crew is dead. reactivate the power core and get to the shuttle_
@@ -33,6 +35,7 @@ var Game = {
     drawable: [],
     map: {},
     mapSize: 15,
+    currentLevel: 1,
     entities: [],
     init: function() {
         this.scheduler = new ROT.Scheduler.Simple();
@@ -84,10 +87,6 @@ var Game = {
         // add decoration
         for (var x = 1; x < this.mapSize; x+=5) {
             for (var y = 2; y < this.mapSize; y+=5) {
-                // if(ROT.RNG.getUniform()>.75)
-                // {
-                //     this._addRectToMap(x-1,y-1,2+2,1+2,true,'window');
-                // }
                 this._addRectToMap(x,y,2,1,true,'plant');
             }
         }
@@ -306,17 +305,37 @@ var Game = {
     },
     nextLevel: function()
     {
+        if(this.currentLevel == 9)
+            return this.gameWin();
         this.drawable = [];
         this.entities = [];
         this.map = {};
+        this.currentLevel++;
         this.scheduler.clear();
         this._generateMap();
     },
     gameOver: function()
     {
-        this.player = null;
-        this.nextLevel();
+        this.scheduler.clear();
+        this.scheduler.add(new RestartListener(0,0));
+        this.currentLevel = 0;
+        this.gameHasBeenLost = true;
     },
+    gameWin: function()
+    {
+        this.scheduler.clear();
+        this.scheduler.add(new RestartListener(0,0));
+        this.currentLevel = 0;
+        this.gameHasBeenWon = true;
+    },
+    restart: function()
+    {
+        this.gameHasBeenWon = false;
+        this.gameHasBeenLost = false;
+        this.player = null;
+        this.currentLevel = 0;
+        this.nextLevel();
+    }
 }
 var redraw = function(timestamp)
 {
