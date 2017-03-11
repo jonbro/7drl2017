@@ -187,7 +187,6 @@ Player.prototype.handleMovement = function(dir)
 }
 Player.prototype.handleKeyEvent = function(e)
 {
-    console.log('keycode:', e.keyCode);
     var movementMap = {};
     // support wasd keys?
     // I think the more roguelike way to do it would be to have a key to target next

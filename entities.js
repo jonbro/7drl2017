@@ -56,6 +56,14 @@ Entity.prototype.setPosition = function(x,y)
     this._x = x;
     this._y = y;
 }
+Entity.prototype.draw = function()
+{
+    cell = Game.map[Game.getKey(this.getX(), this.getY())];
+    var bgColor = cell.bgColor
+    if(this.useCustomBG)
+        bgColor = this.bgColor;
+    Game.display.draw(this.getX(),this.getY(), this.char, this.fgColor, bgColor);
+}
 var Window = function(x,y)
 {
     this.setPosition(x,y);
@@ -65,14 +73,9 @@ var Window = function(x,y)
     this.draw();
     this.fgColor= '#E2F3F1';
     this.bgColor= '#7AADAA'
+    this.useCustomBG = true
 }
-Window.prototype = Object.create(Entity.prototype);
-Window.prototype.constructor = Window;
-Window.prototype.draw = function()
-{
-    cell = Game.map[Game.getKey(this.getX(), this.getY())];
-    Game.display.draw(this.getX(),this.getY(), this.char, this.fgColor, this.bgColor);
-}
+Window.extend(Entity);
 Window.prototype.break = function()
 {
     Game.removeEntity(this);
@@ -82,14 +85,10 @@ var Enemy = function(x,y)
     this.setPosition(x,y);
     this.shootable = true;
     this.draw();
+    this.fgColor = '#f33';
+    this.char = 'e'
 }
-Enemy.prototype = Object.create(Entity.prototype);
-Enemy.prototype.constructor = Enemy;
-Enemy.prototype.draw = function()
-{
-    cell = Game.map[Game.getKey(this.getX(), this.getY())];
-    Game.display.draw(this.getX(),this.getY(), "e", '#f33', cell.bgColor);
-}
+Enemy.extend(Entity);
 Enemy.prototype.act = function()
 {
     // check if player is along shot path
@@ -142,4 +141,60 @@ Enemy.prototype.melee = function()
 Enemy.prototype.onShot = function()
 {
     Game.removeEntity(this);
+}
+EnemySpitter = function(x,y)
+{
+    this.setPosition(x,y);
+    this.state = 'seeking';
+    this.shootable = true;
+
+    // this.state = 'charging'
+    this.char = 's';
+    this.fgColor = '#f33';
+}
+EnemySpitter.extend(Enemy);
+EnemySpitter.prototype.checkShot = function()
+{
+    var hasShot = false;
+    for (var i = 0; i < ROT.DIRS[4].length; i++) {
+        var shotDistance = 4;
+        var dir = ROT.DIRS[4][i];
+        var orthagonalShotHits = this.checkAlongPath(dir[0], dir[1], function(x,y){
+            shotDistance--;
+            if(shotDistance<=0)
+                return false;
+            var playerAtPosition = Game.player._x == x && Game.player._y == y;
+            if(playerAtPosition)
+                return Game.player;
+            // this doesn't check to see if there is an enemy along shot path
+
+            return Game.map[Game.getKey(x,y)].envDef.passable;
+        });
+        if(orthagonalShotHits.length > 0 && orthagonalShotHits[orthagonalShotHits.length-1] == Game.player)
+            hasShot = true;
+        if(hasShot)
+            break;
+    }
+    if(hasShot)
+    {
+        if(this.state == 'seeking'){
+            this.state = 'shooting'
+            this.char = 'S';
+        }else{
+            Game.player.hit();
+        }
+        return true;
+    }else{
+        this.state = 'seeking';
+    }
+    this.char = 's';
+    return false;
+}
+EnemySpitter.prototype.act = function()
+{
+    // check if player is along shot path
+    if(!this.checkShot())
+    {
+        this.movement();
+    }
 }

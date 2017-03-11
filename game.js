@@ -2,6 +2,8 @@
 TODO:
 x generate windows between rooms that share wall
 x windows smashable with lunge spell
+- add enemy type spitter (attempts to get within 3, then spits out an acid cell that causes damage when you step on it)
+- spawner boxes
 - confirm that path from entrance to exit is walkable
 - room types
 - room decoration
@@ -18,7 +20,7 @@ BUGS:
 - should be able to roll into the level exit
 - enemies shouldn't block other enemies pathing to player 
 - check on either side of window for floor before generating window
-CURRENT LOC: 849
+CURRENT LOC: 902
 `cloc . --not-match-f=rot.js`
 
 _the ship is infested and the crew is dead. reactivate the power core and get to the shuttle_
@@ -42,9 +44,12 @@ var Game = {
             tileSet: tileSet,
             tileColorize:true,
             tileMap: {
-                "@": [0, 0],
-                "e": [32, 0],
+                "@": [0, 0], // player
                 
+                "e": [32, 0], // basic enemy
+                "S": [32, 128], // spitter moving
+                "s": [32, 160], // spitter ready to spit
+
                 ".": [64, 0],
                 ",": [64, 32],
                 "f": [64, 64],
@@ -137,7 +142,10 @@ var Game = {
             var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
             var key = freeCells.splice(index, 1)[0];
             let xy = this._keyToXY(key);
+
             var e = new Enemy(xy[0], xy[1]);
+            if(ROT.RNG.getUniform() > 0.5)
+                e = new EnemySpitter(xy[0], xy[1]);
             this.drawable.push(e);
             this.entities.push(e);
             this.scheduler.add(e, true);
