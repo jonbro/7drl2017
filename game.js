@@ -1,28 +1,36 @@
 /*
 TODO:
-x generate windows between rooms that share wall
-x windows smashable with lunge spell
-x add enemy type shooter (attempts to get within 3, then prepares, then shoots at player)
-x game win and game loss screens
-- spawner boxes
-- confirm that path from entrance to exit is walkable
-- room types
-- room decoration
+- pickup types
+- acid floor
+- double move enemy
+- enemy with extra hp
+- full shot enemy
 - two gun types (laser / kinetic)
 - kinetic reload
-- enemy shooter attack
+- spawner boxes
+- room types
+- room decoration
 - visibility
+- beam display
+- item pickups
 - destructible terrain
 - soundtrack
 - sound effects
 
+FOR RELEASE:
+- not enough depth
+- action log
+- sound music and sfx
+- shot effects
+
 BUGS:
-- player can move on top of enemy (should do a melee attack?)
-- player can walk through windows
-- should be able to roll into the level exit
+x should be able to roll into the level exit
+x player can move on top of enemy (should do a melee attack?)
+- don't spawn an enemy in view of the player on level gen
+- confirm that path from entrance to exit is walkable
 - enemies shouldn't block other enemies pathing to player 
 - check on either side of window for floor before generating window
-CURRENT LOC: 961
+CURRENT LOC: 1000
 `cloc . --not-match-f=rot.js`
 
 _the ship is infested and the crew is dead. reactivate the power core and get to the shuttle_
@@ -52,6 +60,11 @@ var Game = {
                 "e": [32, 0], // basic enemy
                 "S": [32, 128], // spitter moving
                 "s": [32, 160], // spitter ready to spit
+
+                'â':[64, 128],
+                'ä':[64, 128+32],
+                'à':[64, 128+32*2],
+                'å':[64, 128+32*3],
 
                 ".": [64, 0],
                 ",": [64, 32],
@@ -185,7 +198,7 @@ var Game = {
                     {
                         var leftSide = Math.max(rooms[topRoom].getLeft(), rooms[bottomRoom].getLeft());
                         var rightSide = Math.min(rooms[topRoom].getRight(), rooms[bottomRoom].getRight());
-                        for(var x = leftSide-1; x < rightSide+1; x++)
+                        for(var x = leftSide; x < rightSide; x++)
                         {
                             var key = this.getKey(x+1,rooms[topRoom].getBottom()+1);
                             if(this.map[key].key == 'wall'){

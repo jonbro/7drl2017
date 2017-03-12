@@ -82,8 +82,6 @@ RestartListener.prototype.handleEvent = function(e)
         Game.engine.unlock();
     }
 }
-
-
 var Window = function(x,y)
 {
     this.setPosition(x,y);
@@ -99,6 +97,17 @@ Window.extend(Entity);
 Window.prototype.break = function()
 {
     Game.removeEntity(this);
+}
+Window.prototype.onMelee = function()
+{
+    this.break();
+}
+var Acid = function(x,y)
+{
+    this.setPosition(x,y);
+    this.passable = true;
+    // states = âäàå full to nearly empty
+    this.char = 'â';
 }
 var Enemy = function(x,y)
 {
@@ -159,6 +168,10 @@ Enemy.prototype.melee = function()
     }
 }
 Enemy.prototype.onShot = function()
+{
+    Game.removeEntity(this);
+}
+Enemy.prototype.onMelee = function()
 {
     Game.removeEntity(this);
 }

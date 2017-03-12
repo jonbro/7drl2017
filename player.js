@@ -116,6 +116,11 @@ Player.prototype.handleEvent = function(e)
 Player.prototype.endTurn = function()
 {
     window.removeEventListener("keydown", this);
+    var key = Game.getKey(this.getX(), this.getY());
+    if(Game.map[key].key == 'exit')
+    {
+        Game.nextLevel();
+    }
     Game.engine.unlock();
 }
 function line(x0, y0, x1, y1){
@@ -191,14 +196,32 @@ Player.prototype.handleMovement = function(dir)
     }
     if(newPositionKey in Game.map)
     {
-        if(Game.map[newPositionKey].key == 'exit')
+        var entitiesAtPosition = Game.getEntitiesAtPosition(newX, newY);
+        if(entitiesAtPosition.length > 0)
         {
-            this.laser.charge();
-            this.roll.charge();
-            Game.nextLevel();
-            this.endTurn();
+            // check to see if we can melee the enemy on the cell
+            for (var i = 0; i < entitiesAtPosition.length; i++) {
+                if(entitiesAtPosition[i].onMelee){
+                    entitiesAtPosition[i].onMelee();
+                    this.laser.charge();
+                    this.roll.charge();
+                    this.endTurn();
+                    return true;
+                }
+            }
+            entitiesAtPosition = Game.getEntitiesAtPosition(newX, newY);
+            var allPassable = true;
+            for (var i = 0; i < entitiesAtPosition.length; i++) {
+                if(entitiesAtPosition[i].passable)
+                    continue;
+                else
+                    allPassable = false;
+            }
+            if(!allPassable)
+                return false;
         }
-        else if(Game.map[newPositionKey].envDef.passable){
+        if(Game.map[newPositionKey].envDef.passable){
+
             this.laser.charge();
             this.roll.charge();
             this.setPosition(this.getX()+dir[0], this.getY()+dir[1]);
