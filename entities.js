@@ -27,7 +27,6 @@ Entity.prototype.checkAlongPath = function(dirx, diry, checkFunction)
     var checkKey = Game.getKey(checkX, checkY);
     while(checkKey in Game.map)
     {
-        
         var checkRes = checkFunction(checkX, checkY);
         if(checkRes)
         {
@@ -40,7 +39,6 @@ Entity.prototype.checkAlongPath = function(dirx, diry, checkFunction)
                 }else{
                     res.push(checkRes)
                 }
-                
             }
         }else{
             return res;
@@ -50,6 +48,30 @@ Entity.prototype.checkAlongPath = function(dirx, diry, checkFunction)
         checkKey = Game.getKey(checkX, checkY);
     }
     return res;
+}
+Entity.prototype.isVisibleByPlayer = function()
+{
+    for (var i = 0; i < ROT.DIRS[4].length; i++) {
+        var dir = ROT.DIRS[4][i];
+        var orthagonalShotHits = this.checkAlongPath(dir[0], dir[1], function(x,y){
+            // console.log(Game.player.getX(), Game.player.getY(),x, y);
+            if(Game.player.getX() == x && Game.player.getY() == y)
+            {
+                return Game.player;
+            }
+            if(Game.getEntitiesAtPosition(x, y).length > 0
+                && Game.getEntitiesAtPosition(x, y)[0].transparent){
+                return true;
+            }
+            return Game.map[Game.getKey(x,y)].envDef.passable;
+        });
+        // console.log(orthagonalShotHits.length);
+        for (var j = 0; j < orthagonalShotHits.length; j++) {
+            if(orthagonalShotHits[j] == Game.player)
+                return true;
+        }
+    }
+    return false;
 }
 Entity.prototype.setPosition = function(x,y)
 {
@@ -86,6 +108,7 @@ var Window = function(x,y)
 {
     this.setPosition(x,y);
     this.breakable = true;
+    this.transparent = true;
     this.char = ['|','-'];
     this.char = this.char[ROT.RNG.getUniformInt(0, this.char.length-1)];
     this.draw();

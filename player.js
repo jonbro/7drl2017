@@ -91,8 +91,6 @@ Player.prototype.act = function()
 {
     Game.engine.lock();
     window.addEventListener("keydown", this);
-    // window.addEventListener("mousemove", this);
-    // window.addEventListener("mousedown", this);
 }
 Player.prototype.hit = function()
 {
@@ -206,7 +204,7 @@ Player.prototype.handleMovement = function(dir)
                     this.laser.charge();
                     this.roll.charge();
                     this.endTurn();
-                    return true;
+                    return;
                 }
             }
             entitiesAtPosition = Game.getEntitiesAtPosition(newX, newY);

@@ -24,13 +24,9 @@ FOR RELEASE:
 - shot effects
 
 BUGS:
-x should be able to roll into the level exit
-x player can move on top of enemy (should do a melee attack?)
-- don't spawn an enemy in view of the player on level gen
-- confirm that path from entrance to exit is walkable
 - enemies shouldn't block other enemies pathing to player 
 - check on either side of window for floor before generating window
-CURRENT LOC: 1000
+CURRENT LOC: 1044
 `cloc . --not-match-f=rot.js`
 
 _the ship is infested and the crew is dead. reactivate the power core and get to the shuttle_
@@ -139,29 +135,29 @@ var Game = {
         }
         this._placeWindowsOnSharedWalls(rooms);
         // add entrance tile
-        var entranceY = ROT.RNG.getUniformInt(leftRoom.getTop()+1, leftRoom.getBottom()-1);
+        var entranceY = ROT.RNG.getUniformInt(leftRoom.getTop()+2, leftRoom.getBottom());
         var entranceX = leftRoom.getLeft();
         this._setMapToTileType(this.getKey(entranceX,entranceY), 'entrance');
 
-        var exitY = ROT.RNG.getUniformInt(rightRoom.getTop()+1, rightRoom.getBottom()-1);
+        var exitY = ROT.RNG.getUniformInt(rightRoom.getTop()+2, rightRoom.getBottom());
         var exitX = rightRoom.getRight()+1;
         this._setMapToTileType(this.getKey(exitX,exitY), 'exit');
 
+        // check passable from entrance to exit
+        var astar = new ROT.Path.AStar(entranceX, entranceY, function(x,y){
+            var pathKey = Game.getKey(x,y);
+            var entities = Game.getEntitiesAtPosition(x,y);
+            var allPassable = true;
+            return pathKey in Game.map && Game.map[pathKey].envDef.passable && allPassable;
+        }, {topology: 4});
 
-        // add exit tile
-        var enemies = [];
-        for (var i = 0; i < 6; i++) {
-            var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
-            var key = freeCells.splice(index, 1)[0];
-            let xy = this._keyToXY(key);
-
-            var e = new Enemy(xy[0], xy[1]);
-            if(ROT.RNG.getUniform() > 0.5)
-                e = new EnemySpitter(xy[0], xy[1]);
-            this.drawable.push(e);
-            this.entities.push(e);
-            this.scheduler.add(e, true);
-        }
+        /* compute from given coords #1 */
+        var foundEnd = false;
+        astar.compute(exitX, exitY, function(x,y){
+            foundEnd = true;
+        });
+        if(!foundEnd)
+            this._generateMap();
 
         if(this.player == null){
             this.player = new Player(entranceX,entranceY);
@@ -170,6 +166,29 @@ var Game = {
         }
         this.drawable.push(this.player);
         this.scheduler.add(this.player, true);
+
+        var enemies = [];
+        var maxAttempts = 30;
+        for (var i = 0; i < 6; i++) {
+            maxAttempts--;
+            if(maxAttempts==0)
+                break;
+            var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
+            var key = freeCells.splice(index, 1)[0];
+            let xy = this._keyToXY(key);
+            var e = new Enemy(xy[0], xy[1]);
+            if(ROT.RNG.getUniform() > 0.5)
+                e = new EnemySpitter(xy[0], xy[1]);
+            if(e.isVisibleByPlayer())
+            {
+                i--;
+                continue;
+            }
+            this.drawable.push(e);
+            this.entities.push(e);
+            this.scheduler.add(e, true);
+        }
+
         this.drawable.push(new Hud());
     },
     _placeWindowsOnSharedWalls: function(rooms)
